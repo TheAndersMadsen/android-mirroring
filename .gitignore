@@ -1,0 +1,20 @@
+# Build output
+.build/
+app/.build/
+app/dist/
+*.icns
+.DS_Store
+.swiftpm/
+xcuserdata/
+DerivedData/
+
+# Reverse-engineering inputs: Apple's binaries and resources extracted from
+# them are Apple's copyright and must never be committed. The write-ups in
+# research/ are ours; the raw material stays local.
+bin/
+ghidra/
+research/localizable-en.json
+research/infoplist-loctable.txt
+
+# Local tooling
+.claude/
