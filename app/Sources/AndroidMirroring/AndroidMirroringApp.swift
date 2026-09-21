@@ -114,6 +114,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Set by the app's root view; lets termination tear the session down.
     weak var model: AppModel?
 
+    private var signalSources: [DispatchSourceSignal] = []
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // `kill` and ^C should clean up like ⌘Q does, not strand the adb
+        // forward and the server on the device.
+        for sig in [SIGTERM, SIGINT] {
+            signal(sig, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
+            source.setEventHandler { NSApp.terminate(nil) }
+            source.resume()
+            signalSources.append(source)
+        }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         // Stops the device-side server and removes the adb forward, which
         // would otherwise outlive the app.

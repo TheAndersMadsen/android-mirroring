@@ -15,8 +15,12 @@ protocol**. There is no SDL and no scrcpy binary: it is Swift, AppKit and SwiftU
      Annex-B is converted to AVCC and enqueued on an
      `AVSampleBufferDisplayLayer` with display-immediately set, so the newest
      frame is on screen as soon as it is decoded.
-   - Audio: raw 48 kHz stereo s16le → `AVAudioEngine`. At most 250 ms is queued;
-     past that, audio is dropped rather than letting latency grow.
+   - Audio: raw 48 kHz stereo s16le → a jitter buffer → `AVAudioSourceNode`.
+     The output device pulls samples on its own clock. Playback holds until
+     60 ms is queued, re-buffers once after an underrun, and skips back to
+     60 ms if more than 180 ms piles up. Run with
+     `ANDROID_MIRRORING_AUDIO_STATS=1` to log peak level, underruns, skips and
+     buffer depth every two seconds.
    - Control: `inject_touch`, `inject_keycode`, `inject_scroll`, `inject_text`,
      `set_clipboard` out; clipboard updates back.
 5. On disconnect or quit, the sockets close, the server stops and the adb
@@ -42,7 +46,7 @@ app/
     MirrorSession.swift         connection choreography, sockets, state machine
     VideoStreamParser.swift     serial, order-preserving v4.1 stream parser
     VideoDecoder.swift          Annex-B → AVCC → AVSampleBufferDisplayLayer
-    AudioPlayer.swift           raw PCM socket → AVAudioEngine
+    AudioPlayer.swift           audio socket parser, jitter buffer, AVAudioEngine output
     ScrcpyWire.swift            byte-exact control message encoder
     PlayerView.swift            mouse → touch, wheel → scroll, keys, clipboard
     ConnectScreen.swift         connect pane with live requirements checklist
@@ -82,6 +86,7 @@ the app uses, decodes it with VideoToolbox and checks the pixels.
 | `ANDROID_MIRRORING_ADB` | Path to the `adb` to use |
 | `ANDROID_MIRRORING_SERVER` | Path to a scrcpy server jar |
 | `ANDROID_MIRRORING_SERVER_VERSION` | Version string passed to that server |
+| `ANDROID_MIRRORING_AUDIO_STATS` | Log audio buffer health every two seconds |
 
 If Homebrew's scrcpy is installed, its server jar and version are used, so the
 two always match. Otherwise the bundled v4.1 jar is used.
